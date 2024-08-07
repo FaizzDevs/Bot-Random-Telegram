@@ -1,14 +1,15 @@
-const TelegramBot = require("node-telegram-bot-api")
+const TelegramBot = require('node-telegram-bot-api')
 const commands = require("../libs/commands")
 const { helpTextMessage, invalidCommandMessage } = require("../libs/constant")
+const JokeAPI = require('sv443-joke-api');
 
-class Cuybot extends TelegramBot {
+class telebot extends TelegramBot {
     constructor(token, options) {
         super(token, options)
         this.on("message", (data) => {
             console.log(`Invalid Command Executed By ${data.from.username} => ${data.text}`)
-            const isInCommand = Object.values(commands).some(keyword => keyword.test(data.text))
 
+            const isInCommand = Object.values(commands).some(keyword => keyword.test(data.text))
             if (!isInCommand) {
                 this.sendMessage(data.from.id, invalidCommandMessage, {
                     reply_markup: {
@@ -32,11 +33,36 @@ class Cuybot extends TelegramBot {
         })
     }
     getSticker() {
-        this.on("sticker", (data) => {
+        this.on("sticker", async(data) => {
             console.log("getSticker Executed By " + data.from.username)
+            const emojiPoint = "https://emoji-api.com/emojis?access_key=73b59c291e8a81fd68f685e86a3c4063c6c4fcae"
+            
+            const apiCall = await fetch(emojiPoint)
+            const response = await apiCall.json()
+            console.log(response) 
             this.sendMessage(data.from.id, data.sticker.emoji)
         })
     }
+
+    getJoke(){
+        const jokeEndPoint = "https://sv443.net/jokeapi/v2/joke/Any"
+
+        try{
+            this.onText(commands.joke, async (data) => {
+                console.log("Get Joke Executed By " + data.from.username)
+                const apiCall = await fetch(jokeEndPoint)
+                const response = await apiCall.json()
+                const joke = response.setup
+                // console.log(response)
+                this.sendMessage(data.from.id, joke, {
+                    caption: `iya nih gak ada coy ${response.setup}`
+                })
+            })
+        } catch (err){
+            console.log(err)
+        }
+    }
+
     getGreeting() {
         this.onText(commands.greeting, (data) => {
             console.log("getGreeting Executed By " + data.from.username)
@@ -104,11 +130,41 @@ class Cuybot extends TelegramBot {
             console.error(error)
         }
     }
+
+    getPhotoRandom(){
+        const accessKey = 'EAtcnZ99xvpbhUeSB9tW18PmVRgvU3q179kLYRlg9Cc';
+        const urlPhotoRandom = `https://api.unsplash.com/photos/random?client_id=${accessKey}`;
+
+        try{
+            this.onText(commands.photo, async (data) => {
+                console.log("getPhotoRandom Executed By " + data.from.username);
+                const apiCall = await fetch(urlPhotoRandom)
+                const response = await apiCall.json()
+                const photo = response.urls.full
+                const user = response.user.name
+                
+                this.sendPhoto(data.from.id, photo, {
+                    caption: `Photo Owner : ${user}`
+                })
+                
+            })
+        }catch (error){
+            console.log(error);
+            
+        }
+    }
+
     getHelp() {
         this.onText(commands.help, async (data) => {
             this.sendMessage(data.from.id, helpTextMessage)
         })
     }
+
+    getCommands(){
+        this.onText(commands.commands, async(data) => {
+            this.sendMessage(data.from.id, commands)
+        })
+    }
 }
 
-module.exports = Cuybot
+module.exports = telebot
